@@ -5,8 +5,14 @@ Personal scripts and machine setup, managed as plain files + symlinks.
 ## Layout
 
 ```
-bin/figma-mcp   → symlinked to ~/.local/bin/figma-mcp
+bin/figma-mcp       → symlinked to ~/.local/bin/figma-mcp
+agents/pi/AGENTS.md → symlinked to ~/.pi/agent/AGENTS.md
 ```
+
+## figma-bridge
+
+The Figma CLI now lives in its own repo: [SuTang-vain/figma-bridge](https://github.com/SuTang-vain/figma-bridge)
+(faster, cached, no MCP layer — supersedes figma-mcp for most use).
 
 ## figma-mcp
 
