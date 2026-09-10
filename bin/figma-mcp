@@ -1,0 +1,32 @@
+#!/bin/bash
+# figma-mcp — CLI bridge for pi and other shell-only agents to call the
+# Framelink Figma MCP server (REST-API based, no Figma desktop needed).
+#
+# Usage:
+#   figma-mcp tools                                    # list available tools
+#   figma-mcp call get_figma_data '{"fileKey":"xxx","nodeId":"1:4"}'
+#   figma-mcp call download_figma_images '{"fileKey":"xxx","localPath":"./imgs","nodes":[...]}'
+#
+# API key resolution order:
+#   1. $FIGMA_API_KEY environment variable
+#   2. ~/.config/figma/api-key (chmod 600, keep OUT of any repo)
+export FRAMELINK_TELEMETRY=off
+if [ -z "$FIGMA_API_KEY" ] && [ -r "$HOME/.config/figma/api-key" ]; then
+  FIGMA_API_KEY="$(head -1 "$HOME/.config/figma/api-key")"
+  export FIGMA_API_KEY
+fi
+if [ -z "$FIGMA_API_KEY" ]; then
+  echo "figma-mcp: FIGMA_API_KEY not set and ~/.config/figma/api-key missing" >&2
+  exit 1
+fi
+
+SERVER=(npx -y figma-developer-mcp --stdio)
+
+cmd="$1"; shift
+if [ "$cmd" = "call" ]; then
+  tool="$1"; shift
+  params="${1:-{\}}"
+  exec mcptools call "$tool" "${SERVER[@]}" --params "$params"
+else
+  exec mcptools "$cmd" "$@" "${SERVER[@]}"
+fi

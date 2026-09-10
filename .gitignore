@@ -1,0 +1,6 @@
+# Credential files must never live here
+api-key
+*.key
+*.token
+# Leak-pattern guard
+figd_*
