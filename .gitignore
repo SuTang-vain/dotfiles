@@ -4,3 +4,6 @@ api-key
 *.token
 # Leak-pattern guard
 figd_*
+
+# figma-bridge
+figma-bridge/node_modules/
