@@ -3,30 +3,101 @@
 # Framelink Figma MCP server (REST-API based, no Figma desktop needed).
 #
 # Usage:
-#   figma-mcp tools                                    # list available tools
-#   figma-mcp call get_figma_data '{"fileKey":"xxx","nodeId":"1:4"}'
-#   figma-mcp call download_figma_images '{"fileKey":"xxx","localPath":"./imgs","nodes":[...]}'
+#   figma-mcp tools                                              # list available tools
+#   figma-mcp call <tool> '<json-params>'                        # call a tool
+#   figma-mcp url <figma-url>                                    # extract fileKey/nodeId from URL
+#   figma-mcp data <figma-url|fileKey> [nodeId]                  # shortcut: fetch design data
+#   figma-mcp images <figma-url|fileKey> <localPath> <nodeId>... # shortcut: download images
+#
+# Examples:
+#   figma-mcp data https://www.figma.com/design/AbC123/MyFile?node-id=1-4
+#   figma-mcp data AbC123 "1:4"
+#   figma-mcp images AbC123 ./imgs "1:4" "2:9"
+#   figma-mcp call get_figma_data '{"fileKey":"AbC123","nodeId":"1:4"}'
 #
 # API key resolution order:
 #   1. $FIGMA_API_KEY environment variable
 #   2. ~/.config/figma/api-key (chmod 600, keep OUT of any repo)
+set -euo pipefail
 export FRAMELINK_TELEMETRY=off
-if [ -z "$FIGMA_API_KEY" ] && [ -r "$HOME/.config/figma/api-key" ]; then
+if [ -z "${FIGMA_API_KEY:-}" ] && [ -r "$HOME/.config/figma/api-key" ]; then
   FIGMA_API_KEY="$(head -1 "$HOME/.config/figma/api-key")"
   export FIGMA_API_KEY
 fi
-if [ -z "$FIGMA_API_KEY" ]; then
+if [ -z "${FIGMA_API_KEY:-}" ]; then
   echo "figma-mcp: FIGMA_API_KEY not set and ~/.config/figma/api-key missing" >&2
   exit 1
 fi
 
 SERVER=(npx -y figma-developer-mcp --stdio)
 
-cmd="$1"; shift
-if [ "$cmd" = "call" ]; then
-  tool="$1"; shift
-  params="${1:-{\}}"
-  exec mcptools call "$tool" "${SERVER[@]}" --params "$params"
-else
-  exec mcptools "$cmd" "$@" "${SERVER[@]}"
-fi
+usage() {
+  grep '^#   ' "$0" | sed 's/^#   //'
+  exit "${1:-0}"
+}
+
+# Parse a Figma URL or bare fileKey; echoes "fileKey[:nodeId]".
+# Accepts: https://www.figma.com/(design|file|proto)/<key>/...?node-id=1-4
+parse_key() {
+  local input="$1" key="" node=""
+  if [[ "$input" == *figma.com* ]]; then
+    key="$(echo "$input" | grep -Eo '(design|file|proto|board)/[A-Za-z0-9_-]+' | head -1 | cut -d/ -f2)"
+    node="$(echo "$input" | grep -Eo 'node-id=[0-9a-zA-Z-]+' | head -1 | cut -d= -f2 | tr '-' ':')"
+  else
+    key="$input"
+  fi
+  if [ -z "$key" ]; then
+    echo "figma-mcp: cannot extract fileKey from: $input" >&2
+    exit 1
+  fi
+  if [ -n "$node" ]; then
+    printf '%s:%s' "$key" "$node"
+  else
+    printf '%s' "$key"
+  fi
+}
+
+cmd="${1:-}"; [ $# -gt 0 ] && shift || usage 1
+
+case "$cmd" in
+  -h|--help|help) usage 0 ;;
+  tools|resources|prompts|version|shell|web)
+    exec mcptools "$cmd" "${SERVER[@]}"
+    ;;
+  call)
+    [ $# -ge 1 ] || { echo "usage: figma-mcp call <tool> '<json-params>'" >&2; exit 1; }
+    tool="$1"; shift
+    params="${1:-{\}}"
+    exec mcptools call "$tool" "${SERVER[@]}" --params "$params"
+    ;;
+  url)
+    [ $# -ge 1 ] || { echo "usage: figma-mcp url <figma-url>" >&2; exit 1; }
+    parse_key "$1"
+    ;;
+  data)
+    [ $# -ge 1 ] || { echo "usage: figma-mcp data <figma-url|fileKey> [nodeId]" >&2; exit 1; }
+    parsed="$(parse_key "$1")"
+    fileKey="${parsed%%:*}"
+    nodeId="${2:-}"
+    # URL-supplied node lives in the parsed value when bare fileKey was a URL
+    if [ "$parsed" != "$fileKey" ] && [ -z "$nodeId" ]; then nodeId="${parsed#*:}"; fi
+    params="{\"fileKey\":\"$fileKey\""
+    [ -n "$nodeId" ] && params="$params,\"nodeId\":\"$nodeId\""
+    params="$params}"
+    exec mcptools call get_figma_data "${SERVER[@]}" --params "$params"
+    ;;
+  images)
+    [ $# -ge 2 ] || { echo "usage: figma-mcp images <figma-url|fileKey> <localPath> <nodeId>..." >&2; exit 1; }
+    parsed="$(parse_key "$1")"; fileKey="${parsed%%:*}"; localPath="$2"; shift 2
+    [ $# -ge 1 ] || { echo "figma-mcp: at least one nodeId required" >&2; exit 1; }
+    nodes="["; first=1
+    for id in "$@"; do
+      [ $first -eq 0 ] && nodes="$nodes,"
+      nodes="$nodes{\"nodeId\":\"$id\"}"; first=0
+    done
+    nodes="$nodes]"
+    params="{\"fileKey\":\"$fileKey\",\"localPath\":\"$localPath\",\"nodes\":$nodes}"
+    exec mcptools call download_figma_images "${SERVER[@]}" --params "$params"
+    ;;
+  *) echo "figma-mcp: unknown command '$cmd'" >&2; usage 1 ;;
+esac

@@ -28,6 +28,11 @@ Usage:
 
 ```bash
 figma-mcp tools                                                  # list server tools
-figma-mcp call get_figma_data '{"fileKey":"xxx","nodeId":"1:4"}'  # fetch design data
-figma-mcp call download_figma_images '{"fileKey":"xxx","localPath":"./imgs","nodes":[{"nodeId":"1:4","fileName":"logo"}]}'
+figma-mcp url '<figma-url>'                                      # extract fileKey/nodeId from a URL
+figma-mcp data '<figma-url|fileKey>' [nodeId]                    # fetch design data (shortcut)
+figma-mcp images '<figma-url|fileKey>' ./imgs '1:4' '2:9'        # download SVG/PNG assets (shortcut)
+figma-mcp call get_figma_data '{"fileKey":"xxx","nodeId":"1:4"}'  # raw tool call
 ```
+
+URLs like `https://www.figma.com/design/<key>/Name?node-id=1-4` are parsed
+automatically — paste the link and the bridge extracts `fileKey` and `nodeId`.
