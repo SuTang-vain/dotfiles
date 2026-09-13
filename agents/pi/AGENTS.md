@@ -14,7 +14,7 @@ figma-bridge images <fileKey> <id1,id2> -o ./assets --scale 2        # 3. 只下
 
 `--fields` 预设：`all`（默认）、`layout+text`、`content`、`visuals`、`layout`，用能满足任务的最窄档。
 多步查询优先用批量模式：`figma-bridge nodejs <<'EOF' ... EOF`，预置 `getScreens`/`getNode`/`getImages`/`cliLog`，支持顶层 await。
-完整说明见 ~/dotfiles/figma-bridge/SKILL.md。
+完整说明见 ~/01_sutang/02_project/figma-bridge/SKILL.md。
 
 ## 浏览器自动化
 

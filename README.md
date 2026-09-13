@@ -14,7 +14,9 @@ agents/pi/AGENTS.md → symlinked to ~/.pi/agent/AGENTS.md
 The Figma CLI now lives in its own repo: [SuTang-vain/figma-bridge](https://github.com/SuTang-vain/figma-bridge)
 (faster, cached, no MCP layer — supersedes figma-mcp for most use).
 
-## figma-mcp
+## figma-mcp (legacy)
+
+> Superseded by figma-bridge; kept as a fallback.
 
 CLI bridge to the [Framelink Figma MCP](https://github.com/Framelink/figma-developer-mcp) server
 (REST-API based, no Figma desktop app needed). Requires the `mcptools` CLI (`brew install mcptools`).
