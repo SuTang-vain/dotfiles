@@ -29,3 +29,8 @@ EOF
 ```
 
 完整用法见 /Applications/ego lite.app/Contents/Resources/ego-browser/SKILL.md。
+
+## Agent 协作：派出 vs 共事
+
+派出子agent（一次性任务、结果回流）用 pi-subagents；与独立 agent 交互（独立会话、持久、可围观）用 `herdr`（本机已装，终端工作区管理器）。
+用 herdr 前先读技能 `skills-optional/herdr/SKILL.md`，操作语法以 `herdr --skill` 实时输出为准。
